@@ -1,0 +1,24 @@
+# Java
+target/
+*.class
+
+# IntelliJ
+.idea/
+*.iml
+
+#MVN
+.mvn
+
+# Mac
+.DS_Store
+
+# Logs
+*.log
+
+# Env
+.env
+
+
+# Build
+out/
+

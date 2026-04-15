@@ -4,7 +4,6 @@ import com.traceroot.platform.ai.IncidentSummaryResponse;
 import com.traceroot.platform.ingestion.LogResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -33,7 +32,6 @@ public class IncidentController {
         return ResponseEntity.ok(incidentService.getIncidentDetails(id));
     }
 
-    //return IncidentResponse
     @PostMapping("/{id}/resolve")
     public ResponseEntity<IncidentResponse> markIncidentResolved(@PathVariable UUID id) {
         return ResponseEntity.ok(incidentService.updateIncident(id));

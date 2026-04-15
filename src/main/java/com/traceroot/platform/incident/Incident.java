@@ -2,9 +2,10 @@ package com.traceroot.platform.incident;
 
 import com.traceroot.platform.common.IncidentStatus;
 import com.traceroot.platform.common.Level;
+import com.traceroot.platform.common.StringListConverter;
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -32,6 +33,20 @@ public class Incident {
     private LocalDateTime updatedAt;
     private String fingerPrint;
 
+    @Column(columnDefinition = "TEXT")
+    private String summary;
+
+    @Column(columnDefinition = "TEXT")
+    private String possibleCause;
+
+    @Convert(converter = StringListConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private List<String> recommendedChecks;
+
+    private LocalDateTime summaryGeneratedAt;
+
+    @Column(nullable = false)
+    private boolean summaryStale = true;
 
 
     public UUID getId() {
@@ -136,5 +151,45 @@ public class Incident {
 
     public void setFingerPrint(String fingerPrint) {
         this.fingerPrint = fingerPrint;
+    }
+
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
+    }
+
+    public String getPossibleCause() {
+        return possibleCause;
+    }
+
+    public void setPossibleCause(String possibleCause) {
+        this.possibleCause = possibleCause;
+    }
+
+    public List<String> getRecommendedChecks() {
+        return recommendedChecks;
+    }
+
+    public void setRecommendedChecks(List<String> recommendedChecks) {
+        this.recommendedChecks = recommendedChecks;
+    }
+
+    public LocalDateTime getSummaryGeneratedAt() {
+        return summaryGeneratedAt;
+    }
+
+    public void setSummaryGeneratedAt(LocalDateTime summaryGeneratedAt) {
+        this.summaryGeneratedAt = summaryGeneratedAt;
+    }
+
+    public boolean isSummaryStale() {
+        return summaryStale;
+    }
+
+    public void setSummaryStale(boolean summaryStale) {
+        this.summaryStale = summaryStale;
     }
 }

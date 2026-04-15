@@ -1,10 +1,8 @@
 package com.traceroot.platform.ingestion;
 
-
 import com.traceroot.platform.common.Environment;
 import com.traceroot.platform.common.Level;
 import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 

@@ -4,7 +4,6 @@ import com.traceroot.platform.common.Environment;
 import com.traceroot.platform.common.Level;
 import com.traceroot.platform.incident.IncidentHelper;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 
 @Service
@@ -59,7 +58,7 @@ public class LogNormalizer {
         if (env == null) {
             throw new IllegalArgumentException("Environment field cannot be empty");
         }
-        return Environment.valueOf(env.name());
+        return Environment.valueOf(env.name().toLowerCase());
     }
 
     public LocalDateTime normalizeTimestamp(LocalDateTime timestamp) {

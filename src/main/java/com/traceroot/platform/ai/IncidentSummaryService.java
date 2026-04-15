@@ -1,6 +1,7 @@
 package com.traceroot.platform.ai;
 
 import com.traceroot.platform.incident.Incident;
+import com.traceroot.platform.incident.IncidentRepository;
 import com.traceroot.platform.ingestion.LogResponse;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
@@ -15,13 +16,15 @@ public class IncidentSummaryService {
     private final IncidentPromptBuilder promptBuilder;
     private final StubLlmClient llmClient;
     private final ObjectMapper objectMapper;
+    private final IncidentRepository incidentRepository;
 
     public IncidentSummaryService(IncidentPromptBuilder promptBuilder,
                                   StubLlmClient llmClient,
-                                  ObjectMapper objectMapper) {
+                                  ObjectMapper objectMapper, IncidentRepository incidentRepository) {
         this.promptBuilder = promptBuilder;
         this.llmClient = llmClient;
         this.objectMapper = objectMapper;
+        this.incidentRepository = incidentRepository;
     }
 
     public IncidentSummaryResponse getIncidentSummary(List<LogResponse> list, Incident incident) {
@@ -55,6 +58,16 @@ public class IncidentSummaryService {
     private String getText(JsonNode root, String fieldName) {
         JsonNode field = root.get(fieldName);
         return field == null || field.isNull() ? "" : field.asText();
+    }
+
+    public IncidentSummaryResponse persistSummary(IncidentSummaryResponse summary, Incident incident) {
+        incident.setSummary(summary.getSummary());
+        incident.setPossibleCause(summary.getPossibleCause());
+        incident.setRecommendedChecks(summary.getRecommendedChecks());
+        incident.setSummaryGeneratedAt(LocalDateTime.now());
+        incident.setSummaryStale(false);
+        incidentRepository.save(incident);
+        return summary;
     }
 }
 

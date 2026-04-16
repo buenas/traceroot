@@ -3,7 +3,6 @@ package com.traceroot.platform.metric;
 import com.traceroot.platform.common.IncidentStatus;
 import com.traceroot.platform.incident.IncidentRepository;
 import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;

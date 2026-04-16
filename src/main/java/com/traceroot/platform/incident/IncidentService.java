@@ -8,8 +8,11 @@ import com.traceroot.platform.common.ResourceNotFoundException;
 import com.traceroot.platform.ingestion.LogResponse;
 import com.traceroot.platform.search.LogSearchService;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -22,9 +25,9 @@ public class IncidentService {
     private final LogSearchService logSearchService;
     private final IncidentSummaryService incidentSummaryService;
 
-    public IncidentService(IncidentRepository incidentRepository, 
+    public IncidentService(IncidentRepository incidentRepository,
                            IncidentHelper incidentHelper,
-                           LogSearchService logSearchService, 
+                           LogSearchService logSearchService,
                            IncidentSummaryService incidentSummaryService) {
         this.incidentRepository = incidentRepository;
         this.incidentHelper = incidentHelper;
@@ -49,6 +52,7 @@ public class IncidentService {
         Incident incident = getIncident(id);
         incident.setIncidentStatus(IncidentStatus.RESOLVED);
         incident.setUpdatedAt(LocalDateTime.now());
+        incident.setResolvedAt(LocalDateTime.now());
         Incident savedIncident = incidentRepository.save(incident);
         return toIncidentResponse(savedIncident);
     }
@@ -65,10 +69,41 @@ public class IncidentService {
         //update eventCount and lastSeen
         incident.setEventCount(incident.getEventCount() + 1);
         incident.setLastSeenAt(LocalDateTime.now());
+        incident.setUpdatedAt(LocalDateTime.now());
         incident.setSummaryStale(true);
 
         incidentRepository.save(incident);
         return true;
+    }
+
+    public boolean updateResolvedIncidentIfExists(String fingerPrint) {
+        Optional<Incident> resolvedIncident = incidentRepository
+                .findFirstByFingerPrintAndIncidentStatusOrderByResolvedAtDesc(fingerPrint,
+                        IncidentStatus.RESOLVED);
+
+        if (resolvedIncident.isEmpty()) return false;
+
+        Incident incident = resolvedIncident.get();
+
+        LocalDateTime resolvedAt = incident.getResolvedAt();
+
+        if (resolvedAt == null) return false;
+
+        LocalDateTime now = LocalDateTime.now();
+        Duration reopenWindow = Duration.between(resolvedAt, now);
+
+        if (reopenWindow.toHours() > 24) return false;
+
+        incident.setIncidentStatus(IncidentStatus.ACTIVE);
+        incident.setLastSeenAt(now);
+        incident.setUpdatedAt(now);
+        incident.setEventCount(incident.getEventCount() + 1);
+        incident.setSummaryStale(true);
+        incident.setResolvedAt(null);
+
+        incidentRepository.save(incident);
+        return true;
+
     }
 
     public void createIncident(String fingerPrint, int eventCount, LocalDateTime firstSeenAt) {
@@ -127,12 +162,16 @@ public class IncidentService {
                 incident.isSummaryStale();
     }
 
-    private void createIncident(String fingerPrint, String[] parts, int eventCount, LocalDateTime firstSeenAt) {
+    private void createIncident(String fingerPrint,
+                                String[] parts,
+                                int eventCount,
+                                LocalDateTime firstSeenAt) {
         Incident newIncident = new Incident();
         String incidentTitle = incidentHelper.generateIncidentTitle(parts);
 
         newIncident.setFingerPrint(fingerPrint);
         newIncident.setIncidentStatus(IncidentStatus.ACTIVE);
+
         newIncident.setFirstSeenAt(firstSeenAt);
         newIncident.setCreatedAt(LocalDateTime.now());
         newIncident.setLastSeenAt(LocalDateTime.now());

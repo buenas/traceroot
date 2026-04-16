@@ -11,7 +11,11 @@ public class IncidentSummaryResponse {
     private List<String> recommendedChecks;
     private LocalDateTime generatedAt;
 
-    public IncidentSummaryResponse(UUID incidentId, String summary, String possibleCause, List<String> recommendedChecks, LocalDateTime generatedAt) {
+    public IncidentSummaryResponse(UUID incidentId,
+                                   String summary,
+                                   String possibleCause,
+                                   List<String> recommendedChecks,
+                                   LocalDateTime generatedAt) {
         this.incidentId = incidentId;
         this.summary = summary;
         this.possibleCause = possibleCause;

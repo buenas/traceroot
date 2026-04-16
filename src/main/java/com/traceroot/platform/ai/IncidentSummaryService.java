@@ -20,7 +20,8 @@ public class IncidentSummaryService {
 
     public IncidentSummaryService(IncidentPromptBuilder promptBuilder,
                                   StubLlmClient llmClient,
-                                  ObjectMapper objectMapper, IncidentRepository incidentRepository) {
+                                  ObjectMapper objectMapper,
+                                  IncidentRepository incidentRepository) {
         this.promptBuilder = promptBuilder;
         this.llmClient = llmClient;
         this.objectMapper = objectMapper;

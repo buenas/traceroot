@@ -106,5 +106,4 @@ public class IncidentResponse {
     public void setEventCount(Integer eventCount) {
         this.eventCount = eventCount;
     }
-
 }

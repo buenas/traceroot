@@ -32,6 +32,7 @@ public class Incident {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String fingerPrint;
+    private LocalDateTime resolvedAt;
 
     @Column(columnDefinition = "TEXT")
     private String summary;
@@ -191,5 +192,13 @@ public class Incident {
 
     public void setSummaryStale(boolean summaryStale) {
         this.summaryStale = summaryStale;
+    }
+
+    public LocalDateTime getResolvedAt() {
+        return resolvedAt;
+    }
+
+    public void setResolvedAt(LocalDateTime resolvedAt) {
+        this.resolvedAt = resolvedAt;
     }
 }

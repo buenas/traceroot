@@ -8,7 +8,6 @@ import com.traceroot.platform.common.ResourceNotFoundException;
 import com.traceroot.platform.ingestion.LogResponse;
 import com.traceroot.platform.search.LogSearchService;
 import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;

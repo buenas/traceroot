@@ -1,11 +1,12 @@
 package com.traceroot.platform.ai;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.traceroot.platform.incident.Incident;
 import com.traceroot.platform.incident.IncidentRepository;
 import com.traceroot.platform.ingestion.LogResponse;
 import org.springframework.stereotype.Service;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,12 +15,12 @@ import java.util.List;
 @Service
 public class IncidentSummaryService {
     private final IncidentPromptBuilder promptBuilder;
-    private final StubLlmClient llmClient;
+    private final LlmClient llmClient;
     private final ObjectMapper objectMapper;
     private final IncidentRepository incidentRepository;
 
     public IncidentSummaryService(IncidentPromptBuilder promptBuilder,
-                                  StubLlmClient llmClient,
+                                  LlmClient llmClient,
                                   ObjectMapper objectMapper,
                                   IncidentRepository incidentRepository) {
         this.promptBuilder = promptBuilder;

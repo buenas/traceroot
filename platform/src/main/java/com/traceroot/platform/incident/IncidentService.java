@@ -8,6 +8,8 @@ import com.traceroot.platform.common.ResourceNotFoundException;
 import com.traceroot.platform.ingestion.LogResponse;
 import com.traceroot.platform.search.LogSearchService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -56,6 +58,7 @@ public class IncidentService {
         return toIncidentResponse(savedIncident);
     }
 
+    @Transactional
     public boolean updateActiveIncidentIfExists(String fingerPrint) {
         // Look for an ACTIVE incident with the same fingerprint.
         Incident incident = incidentRepository.findByFingerPrintAndIncidentStatus(fingerPrint,
@@ -75,6 +78,7 @@ public class IncidentService {
         return true;
     }
 
+    @Transactional
     public boolean updateResolvedIncidentIfExists(String fingerPrint) {
         Optional<Incident> resolvedIncident = incidentRepository
                 .findFirstByFingerPrintAndIncidentStatusOrderByResolvedAtDesc(fingerPrint,
@@ -114,14 +118,12 @@ public class IncidentService {
         // Load the incident or fail fast.
         Incident incident = getIncident(incidentId);
 
-        // Case 1:
-        // Summary already exists and is fresh -> return persisted values.
+        // If a fresh summary already exists, return it without calling the LLM.
         if (hasUsableSummary(incident)) {
             return mapToSummaryResponse(incident);
         }
 
-        // Pull the logs used to build the prompt.
-        // This keeps summary generation aligned with the incident pattern definition.
+        // Otherwise, generate a new summary from the logs that match this incident's pattern.
         List<LogResponse> logs = logSearchService.getLogsByType(
                 incident.getServiceName(),
                 incident.getLevel(),
@@ -129,17 +131,9 @@ public class IncidentService {
                 incident.getEndpoint()
         );
 
-        // Ask the AI summary service to generate a structured response
-        // using the existing stub + prompt builder flow.
         IncidentSummaryResponse generated = incidentSummaryService.getIncidentSummary(logs, incident);
-
-        // Case 2:
-        // Summary exists but became stale -> overwrite persisted summary fields.
-        if (hasStaleSummary(incident)) {
-            return incidentSummaryService.persistSummary(generated, incident);
-        }
-        // Case 3:
-        // No persisted summary exists yet -> save it for the first time.
+        // Persist for future requests and mark fresh.
+        // This covers both the first-time case and the stale-regeneration case.
         return incidentSummaryService.persistSummary(generated, incident);
     }
 

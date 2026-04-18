@@ -23,22 +23,22 @@ public class IncidentController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<IncidentResponse> getIncidentsById(@PathVariable UUID id) {
+    public ResponseEntity<IncidentResponse> getIncidentsById(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(incidentService.getIncidentsById(id));
     }
 
     @GetMapping("/{id}/logs")
-    public ResponseEntity<List<LogResponse>> getIncidentDetails(@PathVariable UUID id) {
+    public ResponseEntity<List<LogResponse>> getIncidentDetails(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(incidentService.getIncidentDetails(id));
     }
 
     @PostMapping("/{id}/resolve")
-    public ResponseEntity<IncidentResponse> markIncidentResolved(@PathVariable UUID id) {
+    public ResponseEntity<IncidentResponse> markIncidentResolved(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(incidentService.updateIncident(id));
     }
 
     @GetMapping("/{id}/summary")
-    public ResponseEntity<IncidentSummaryResponse> getIncidentSummary(@PathVariable UUID id){
+    public ResponseEntity<IncidentSummaryResponse> getIncidentSummary(@PathVariable("id") UUID id){
         return ResponseEntity.ok(incidentService.getIncidentSummary(id));
     }
 }

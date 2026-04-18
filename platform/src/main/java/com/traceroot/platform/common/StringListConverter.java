@@ -1,9 +1,8 @@
 package com.traceroot.platform.common;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import tools.jackson.databind.ObjectMapper;
-
 import java.util.Collections;
 import java.util.List;
 

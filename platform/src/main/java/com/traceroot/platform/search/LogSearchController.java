@@ -19,7 +19,7 @@ public class LogSearchController {
     }
 
     @GetMapping("/logs/{id}")
-    public ResponseEntity<LogResponse> getLogsById(@PathVariable UUID id) {
+    public ResponseEntity<LogResponse> getLogsById(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(logSearchService.getRecordById(id));
     }
 

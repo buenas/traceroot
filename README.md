@@ -1,188 +1,197 @@
-# TraceRoot — AI-Powered Incident Detection & Root Cause Analysis Platform
+# TraceRoot — AI-Powered Reliability Platform
 
-## Overview
+TraceRoot is a backend reliability platform that ingests application logs, detects recurring production failures, groups them into lifecycle-managed incidents, and generates AI-powered summaries to accelerate root cause analysis.
 
-TraceRoot is a backend system that transforms raw application logs into structured incidents and generates AI-powered summaries to accelerate debugging and root cause analysis.
+It consists of two systems:
 
-Instead of treating logs as passive data, TraceRoot models them as signals — detecting recurring failure patterns, grouping them into incidents, and providing actionable insights through a structured pipeline.
+1. **TraceRoot Platform** — the core reliability platform (log ingestion, incident detection, lifecycle management, AI summarization, metrics).
+2. **Failure Lab** — a distributed microservices sandbox that generates realistic failure patterns (cascading failures, retry storms, timeouts, null pointers) to stress-test the platform with real distributed traffic.
 
-This project is designed to reflect how modern observability platforms operate, while remaining fully implementable and understandable at the application layer.
+The project is intentionally structured to resemble systems like Datadog, Sentry, and New Relic at the architectural level, while remaining fully implementable and readable at the application layer.
 
 ---
 
 ## Problem
 
-Modern backend systems generate large volumes of logs, but:
+Production backends generate large volumes of logs, but modern observability tooling still leaves engineers doing the hard work:
 
-* Logs are unstructured and difficult to interpret at scale
-* Failures are often buried in noise
-* Engineers manually correlate repeated errors across time
-* There is no built-in mechanism to group, prioritize, or explain failures
+- Logs are noisy and unstructured.
+- Recurring failures are buried in volume.
+- Engineers manually correlate errors across services and time windows.
+- There is no built-in layer that groups, prioritizes, or explains failures.
 
-As a result, incident detection and triage become slow, reactive, and error-prone.
-
----
-
-## Solution
-
-TraceRoot introduces a structured pipeline that converts logs into actionable incidents:
-
-1. Logs are ingested and normalized
-2. Repeated error patterns are detected using fingerprinting
-3. Errors within a time window are grouped into incidents
-4. Incidents are tracked through a lifecycle (ACTIVE → RESOLVED)
-5. AI generates summaries, likely causes, and recommended checks
-
-This shifts logs from raw output into structured, queryable, and explainable system behavior.
+As a result, incident detection and triage stay slow, reactive, and expensive.
 
 ---
 
-## Key Features
+## What TraceRoot Does
 
-* Structured log ingestion with validation and normalization
-* PostgreSQL-backed persistence layer
-* Filtered log search (by service, level, metadata)
-* Incident detection using fingerprinting:
-  `(serviceName + level + exceptionType + endpoint)`
-* Time-window-based detection (e.g., 3 matching errors within 5 minutes)
-* Incident lifecycle management (ACTIVE / RESOLVED)
-* Incident-to-log relationship via query-based mapping
-* AI-powered incident summaries (stubbed LLM client with structured prompts)
-* Modular monolith architecture with clear domain boundaries
+TraceRoot converts raw logs into a structured incident stream:
+
+1. Logs are ingested, validated, and normalized.
+2. ERROR logs are fingerprinted on `(serviceName, level, exceptionType, endpoint)`.
+3. Fingerprint matches within a time window are counted.
+4. Once a threshold is crossed, an incident is created.
+5. Subsequent matching logs update the incident's event count and last-seen timestamp.
+6. Incidents pass through a lifecycle: ACTIVE → RESOLVED, with automatic reopening if the same pattern recurs within a configured window.
+7. An AI summarization layer generates structured summaries, probable causes, and recommended checks for each incident.
 
 ---
 
 ## Architecture
 
-The system is implemented as a modular monolith using Spring Boot.
+### Platform (modular monolith)
+ingestion/   → log intake, validation, normalization, persistence
+search/      → log querying and filtering
+incident/    → fingerprinting, detection, lifecycle, reopening
+ai/          → prompt construction, LLM client, structured summary generation
+metric/      → incident metrics and analytics aggregations
 
-```
-ingestion/   → log intake, normalization, persistence  
-search/      → log querying and filtering  
-incident/    → detection, grouping, lifecycle management  
-ai/          → prompt construction, LLM integration, summaries  
-```
+Each module has a single responsibility and communicates through explicit service interfaces.
 
-Each module has a clear responsibility and communicates through well-defined service boundaries.
+### Failure Lab (distributed sandbox)
+api-gateway      → entry point, simulates top-level failure propagation
+order-service    → orchestrates inventory + payment, drives retry storms
+inventory-service → simulates null pointers, dependency outages, stale stock
+payment-service   → simulates timeouts, provider outages, transient failures
+
+Each service emits structured logs to the TraceRoot platform via a shared ingestion client. Failure flags propagate from the gateway through the call chain, producing realistic cross-service error patterns — for example, a payment retry storm generates bursts of logs from payment-service (ERROR), order-service (WARN per retry + ERROR on exhaustion), and api-gateway (ERROR on propagation).
+
+### Planned: polyglot storage
+
+The platform currently uses PostgreSQL for all storage. The roadmap splits storage by access pattern:
+
+- **PostgreSQL** retains incidents, lifecycle state, summaries, metrics, and configuration.
+- **OpenSearch** handles raw log indexing, full-text search, faceted filtering, and time-series aggregations.
+
+This split reflects that transactional incident state and high-volume log search are fundamentally different workloads.
 
 ---
 
-## System Flow
+## Key Features
 
-1. Logs are submitted via API
-2. Logs are normalized and persisted
-3. ERROR logs trigger fingerprint evaluation
-4. Matching logs within a time window are counted
-5. If threshold is met, an incident is created
-6. Incident aggregates matching logs
-7. AI generates a structured summary based on logs and metadata
+### Incident detection and lifecycle
 
----
+- Fingerprint-based pattern matching on four fields (service, level, exception type, endpoint).
+- Threshold-based incident creation (default: 3 matching errors within a 5-minute window).
+- Automatic incident reopening when a resolved pattern recurs within 24 hours.
+- Event count and last-seen tracking on active incidents.
 
-## AI Integration
+### AI summarization
 
-TraceRoot includes a prompt-driven AI layer designed for backend reasoning.
+- Structured prompt builder with explicit rules, JSON-only output, and controlled context size.
+- Summary, probable cause, and recommended checks generated per incident.
+- Persisted summaries with staleness detection — summaries are marked stale when the underlying incident changes and regenerated on next request.
+- LLM client is interface-based; currently using a stub for development, designed for drop-in replacement with OpenAI, Anthropic, or self-hosted models.
 
-* Structured prompt builder (incident + logs)
-* Controlled context size (log sampling)
-* Strict JSON output format
-* Stubbed LLM client (replaceable with real provider)
+### Metrics and analytics
 
-Example output:
+- Active, resolved, and total incident counts.
+- 24-hour rolling incident creation and resolution rates.
+- Average resolution time.
+- Per-service incident breakdown (total, active, resolved).
+- Top recurring incident patterns across the system.
 
-```
-{
-  "summary": "...",
-  "possibleCause": "...",
-  "recommendedChecks": [...]
-}
-```
+### Failure Lab
 
-The AI layer is intentionally decoupled from the core system, allowing easy integration with providers such as OpenAI or Anthropic.
+- Four independently deployable Spring Boot services.
+- Configurable failure modes per call (null pointers, dependency failures, timeouts, provider outages, retry storms).
+- Realistic retry storm simulation — repeated calls driven by the order service produce time-spread error bursts, not single fake log loops.
+- Shared log client emits structured events to the TraceRoot ingestion endpoint.
 
 ---
 
 ## API Endpoints
 
-### Logs
+**Logs**
+- `POST /api/logs` — ingest a structured log event
+- `GET /api/logs` — filtered log search (by service, level)
+- `GET /api/logs/{id}` — fetch single log
 
-* `POST /api/logs`
-* `GET /api/logs`
-* `GET /api/logs/{id}`
+**Incidents**
+- `GET /api/incidents` — list all incidents (newest first)
+- `GET /api/incidents/{id}` — fetch incident detail
+- `GET /api/incidents/{id}/logs` — logs matching an incident's fingerprint
+- `GET /api/incidents/{id}/summary` — AI-generated summary (persisted, regenerated when stale)
+- `POST /api/incidents/{id}/resolve` — mark resolved
 
-### Incidents
-
-* `GET /api/incidents`
-* `GET /api/incidents/{id}`
-* `POST /api/incidents/{id}/resolve`
-
-### Incident Logs
-
-* `GET /api/incidents/{id}/logs`
-
-### AI Summary
-
-* `GET /api/incidents/{id}/summary`
+**Metrics**
+- `GET /api/metrics/incidents` — platform-wide incident metrics
+- `GET /api/metrics/incidents/services` — per-service breakdown
+- `GET /api/metrics/incidents/top-patterns` — top recurring fingerprints
 
 ---
 
 ## Tech Stack
 
-* Java 17
-* Spring Boot
-* PostgreSQL
-* JPA / Hibernate
-* REST APIs
-* Prompt-based AI integration
+- Java 17
+- Spring Boot 3
+- PostgreSQL
+- JPA / Hibernate
+- Jackson (structured JSON handling)
+- Bean Validation
+- OpenSearch (planned)
 
 ---
 
-## Running the Project
+## Running Locally
 
-1. Clone the repository
-2. Set up PostgreSQL locally
-3. Configure `application.properties`
-4. Run the Spring Boot application
-5. Use Postman to interact with APIs
+1. Clone the repository.
+2. Start PostgreSQL (local or Docker).
+3. Configure `application.properties` with your database connection.
+4. Run `TraceRootApplication` to start the platform.
+5. Run each Failure Lab service independently (`ApiGatewayApplication`, `OrderServiceApplication`, `InventoryServiceApplication`, `PaymentServiceApplication`) to generate realistic failure traffic.
+6. Trigger scenarios with `curl` or Postman against the gateway at `/checkout`.
+
+Example — trigger a payment retry storm:
+
+```bash
+curl -X POST http://localhost:8080/checkout \
+  -H "Content-Type: application/json" \
+  -d '{
+    "traceId": "demo-1",
+    "orderId": "order-001",
+    "sku": "SKU-42",
+    "quantity": 1,
+    "amount": 29.99,
+    "simulatePaymentRetryStorm": true
+  }'
+```
+
+Then query `GET /api/incidents` to see the resulting incident, and `GET /api/incidents/{id}/summary` for the AI-generated summary.
 
 ---
 
-## Design Considerations
+## Design Principles
 
-* Separation of ingestion vs query concerns
-* Deterministic incident detection (before AI involvement)
-* Consistent data normalization to avoid matching inconsistencies
-* Time-window-based logic to reduce false positives
-* AI used as an explanatory layer, not a decision engine
+- **Deterministic detection before AI involvement.** Fingerprinting, thresholds, and lifecycle are all rule-based. AI only explains — it does not decide.
+- **Separation of ingestion and query concerns.** Writing logs and reading logs are different problems and are modeled separately.
+- **Staleness over regeneration.** Summaries are persisted and regenerated only when the underlying incident changes — balancing cost and freshness.
+- **Realistic failure simulation.** The Failure Lab produces real distributed error patterns, not synthetic log data. This makes detection tuning meaningful rather than hypothetical.
+- **Polyglot storage where justified.** PostgreSQL for transactional state, OpenSearch for log volume — each tool used for what it does best.
 
 ---
 
-## Future Improvements
+## Roadmap
 
-* Persist AI summaries and introduce caching
-* Replace stub LLM with real API integration
-* Add streaming ingestion (Kafka)
-* Introduce anomaly detection beyond rule-based thresholds
-* Build frontend dashboard for incident visualization
-* Support multi-service distributed simulation
+- OpenSearch integration for high-volume log indexing and search.
+- Real LLM integration with retries, timeouts, and fallback behavior.
+- Evaluation harness for measuring AI summary quality.
+- React frontend for incident dashboards, metrics visualization, and summary review.
+- Incident timeline / activity feed endpoint.
+- Alerting and notification integrations (Slack, email, PagerDuty-style).
+- Anomaly detection beyond threshold rules (error rate spikes, cross-service correlation).
 
 ---
 
 ## Why This Project Matters
 
-This project demonstrates:
-
-* Backend system design beyond CRUD APIs
-* Real-world observability patterns
-* Data normalization and consistency strategies
-* Incident detection and lifecycle modeling
-* Clean service-layer architecture
-* Practical AI integration in backend systems
-
-It is intentionally designed to resemble systems used in platforms like Datadog, Sentry, and New Relic.
+TraceRoot demonstrates backend engineering beyond CRUD APIs: observability patterns, lifecycle modeling, structured AI integration, and distributed systems simulation. The combination of a production-shaped platform *and* a realistic failure generator is intentional — it's what separates "I built a tool" from "I built a tool and stress-tested it against real distributed traffic."
 
 ---
 
 ## Author
 
-Built as a backend + AI systems project focused on observability, incident detection, and intelligent debugging workflows.
+Built by Ozioma Ochin. Backend + AI systems work focused on reliability, observability, and intelligent debugging workflows.
+
+Writing about the design decisions behind TraceRoot at https://ozi.hashnode.dev.

@@ -52,8 +52,15 @@ export function IncidentList() {
 
     if (error) {
         return (
-            <div className="text-red-600">
-                Error: {error instanceof Error ? error.message : "Unknown error"}
+            <div className="rounded-md border border-destructive/50 bg-destructive/5 p-6">
+                <h3 className="mb-2 text-sm font-semibold text-destructive">
+                    Unable to load incidents
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                    {error instanceof Error
+                        ? error.message
+                        : "Something went wrong. Please refresh the page."}
+                </p>
             </div>
         );
     }
@@ -98,8 +105,19 @@ export function IncidentList() {
             </div>
 
             {filtered.length === 0 ? (
-                <div className="rounded-md border p-8 text-center text-muted-foreground">
-                    No {filter === "ALL" ? "" : filter.toLowerCase()} incidents yet.
+                <div className="rounded-md border p-12 text-center">
+                    <div className="mx-auto max-w-sm space-y-2">
+                        <h3 className="text-sm font-semibold">
+                            No {filter === "ALL" ? "" : filter.toLowerCase()} incidents
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                            {filter === "ALL"
+                                ? "When failures are detected, incidents will appear here."
+                                : filter === "ACTIVE"
+                                    ? "Active incidents will appear here when detection fires."
+                                    : "Resolved incidents will appear here once marked."}
+                        </p>
+                    </div>
                 </div>
             ) : (
                 <div className="rounded-md border">

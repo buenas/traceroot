@@ -5,6 +5,7 @@ import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import {
     Table,
     TableBody,
@@ -37,6 +38,7 @@ async function fetchIncidents(): Promise<Incident[]> {
 }
 
 export function IncidentList() {
+    const router = useRouter();
     const [filter, setFilter] = useState<StatusFilter>("ALL");
 
     const { data, isLoading, error } = useQuery({
@@ -113,7 +115,10 @@ export function IncidentList() {
                         </TableHeader>
                         <TableBody>
                             {filtered.map((incident) => (
-                                <TableRow key={incident.id} className="cursor-pointer">
+                                <TableRow
+                                    key={incident.id}
+                                    className="cursor-pointer"
+                                    onClick={() => router.push(`/incidents/${incident.id}`)}>
                                     <TableCell>
                                         <Badge
                                             variant={

@@ -1,7 +1,6 @@
 package com.traceroot.platform.ai.stub;
 
 import com.traceroot.platform.ai.LlmClient;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 

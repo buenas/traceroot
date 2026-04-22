@@ -3,6 +3,7 @@ package com.traceroot.platform.ai;
 import com.traceroot.platform.incident.Incident;
 import com.traceroot.platform.ingestion.LogResponse;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,19 +17,51 @@ public class IncidentPromptBuilder {
         String formattedLogs = formatLogs(logs);
 
         return """
-                You are an expert backend engineer and incident response assistant.
+                ROLE
+                You are a senior reliability engineer analyzing a production incident.
+                Your output will be read by an on-call engineer who needs to decide
+                whether to act and what to investigate first.
                 
-                Your task is to analyze a backend system incident based only on the structured incident metadata and logs provided below.
+                TASK
+                Analyze the incident below and produce a JSON object with three fields:
+                summary, possibleCause, recommendedChecks.
                 
-                Rules:
-                - Be precise.
-                - Do not speculate beyond the provided data.
-                - Base your reasoning only on the logs and metadata.
-                - If the evidence is limited, say so.
-                - Return ONLY valid JSON.
-                - Do not include markdown, code fences, or explanatory text outside JSON.
+                REASONING RULES
+                - Ground every claim in the provided metadata or logs. Do not speculate
+                  beyond the evidence. If the evidence is thin, say so explicitly in
+                  possibleCause.
+                - Use the First Seen At and Last Seen At timestamps. Note whether
+                  errors are clustered (seconds/minutes apart) or spread across a
+                  longer window, and what that pattern suggests.
+                - Reference specific log messages, trace IDs, or log fields when
+                  supporting a hypothesis. Do not reason from exception type and
+                  endpoint alone.
+                - Identify patterns across logs: same trace ID, repeated request
+                  shapes, correlated timestamps with upstream/downstream services.
+                  Name the pattern if you find one.
+                - Prefer "likely" or "consistent with" over "may" or "possibly" when
+                  the evidence supports it. Reserve hedging for genuine ambiguity.
                 
-                ## Incident Metadata
+                OUTPUT FORMAT
+                summary: 1-2 sentences describing what is happening. Include the
+                  service, exception type, event count, and time window. No marketing
+                  tone.
+                
+                possibleCause: 2-3 sentences stating the most likely root cause and
+                  the evidence that supports it. Cite specific log content or patterns.
+                  If genuinely unclear, state what additional data would resolve the
+                  ambiguity.
+                
+                recommendedChecks: 3-5 concrete investigation steps. Each step names
+                  a specific component, file path, endpoint, query, dashboard, or
+                  configuration to inspect. Do not include generic advice like
+                  "check logs" or "review the code." Describe what to check, not
+                  what to fix.
+                
+                Return only valid JSON. No markdown, code fences, or prose outside
+                the JSON object.
+                
+                INCIDENT METADATA
                 Title: %s
                 Service: %s
                 Level: %s
@@ -39,19 +72,8 @@ public class IncidentPromptBuilder {
                 First Seen At: %s
                 Last Seen At: %s
                 
-                ## Logs
+                LOGS
                 %s
-                
-                ## Required Output Format
-                {
-                  "summary": "...",
-                  "possibleCause": "...",
-                  "recommendedChecks": [
-                    "...",
-                    "...",
-                    "..."
-                  ]
-                }
                 """.formatted(
                 safe(incident.getTitle()),
                 safe(incident.getServiceName()),

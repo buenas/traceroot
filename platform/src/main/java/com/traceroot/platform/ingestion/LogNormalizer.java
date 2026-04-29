@@ -58,7 +58,7 @@ public class LogNormalizer {
         if (env == null) {
             throw new IllegalArgumentException("Environment field cannot be empty");
         }
-        return Environment.valueOf(env.name().toLowerCase());
+        return Environment.valueOf(env.name());
     }
 
     public LocalDateTime normalizeTimestamp(LocalDateTime timestamp) {

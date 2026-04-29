@@ -48,7 +48,6 @@ public class LogService {
         if (reopened) return record;
 
         //count matching logs in log db for same fingerprint
-        //test this
         LocalDateTime windowStart = LocalDateTime.now().minusMinutes(5);
         List<LogRecord> matchList =
                 logRepository.findByServiceNameAndLevelAndExceptionTypeAndEndpointAndTimestampAfter(

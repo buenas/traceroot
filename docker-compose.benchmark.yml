@@ -1,0 +1,36 @@
+# docker-compose.benchmark.yml
+# Not used by the live TraceRoot platform.
+#
+# Start:  docker compose -f docker-compose.benchmark.yml up -d
+# Stop:   docker compose -f docker-compose.benchmark.yml down
+# Wipe:   docker compose -f docker-compose.benchmark.yml down -v
+
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.11.1
+    container_name: traceroot-opensearch
+    environment:
+      # Single-node, no cluster overhead — appropriate for benchmark work.
+      - discovery.type=single-node
+      # Disable security plugin for local benchmark use.
+      # In real production, security is mandatory. We're skipping it because
+      # this is a localhost-only benchmark instance, no external access.
+      - DISABLE_SECURITY_PLUGIN=true
+      # Heap sizing. 2GB is enough for 10M small documents.
+      # Increase if you see out-of-memory errors during bulk indexing.
+      - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "9200:9200"  # REST API
+      - "9600:9600"  # Performance Analyzer
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+
+volumes:
+  opensearch-data:

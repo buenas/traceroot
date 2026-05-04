@@ -1,10 +1,13 @@
 # Java
 target/
 *.class
+harness-output/
+benchmark-output/
 
 # IntelliJ
 .idea/
 *.iml
+/.info.txt
 
 #MVN
 .mvn
@@ -22,3 +25,4 @@ target/
 # Build
 out/
 
+/info.txt
